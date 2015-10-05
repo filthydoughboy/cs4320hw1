@@ -42,5 +42,13 @@ public class IndexNode<K extends Comparable<K>, T> extends Node<K,T> {
 			children.add(index+1, child);
 		}
 	}
+	
+	public ArrayList<K> getKeyArrayList(){
+		return keys;
+	}
+	
+	public ArrayList<Node<K,T>> getChildrenArrayList(){
+		return children;
+	}
 
 }

@@ -1,3 +1,4 @@
+import java.util.AbstractMap;
 import java.util.ArrayList;
 
 public class Node<K extends Comparable<K>, T> {
@@ -10,6 +11,10 @@ public class Node<K extends Comparable<K>, T> {
 
 	public boolean isUnderflowed() {
 		return keys.size() < BPlusTree.D;
+	}
+
+	public ArrayList<K> getKeyArrayList() {
+		return keys;
 	}
 
 }

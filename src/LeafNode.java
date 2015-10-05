@@ -49,5 +49,13 @@ public class LeafNode<K extends Comparable<K>, T> extends Node<K, T> {
 
 		}
 	}
+	
+	public ArrayList<K> getKeyArrayList(){
+		return keys;
+	}
+	
+	public ArrayList<T> getValuesArrayList(){
+		return values;
+	}
 
 }

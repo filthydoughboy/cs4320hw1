@@ -17,6 +17,7 @@ public class Utils {
 	    bulkInsert(BPlusTree<K,T> b, K[] tests, T[] testValues) {
 		for (int i = 0; i < tests.length; i++) {
 			b.insert(tests[i], testValues[i]);
+			System.out.println(outputTree(b));
 		}
 
 	}
