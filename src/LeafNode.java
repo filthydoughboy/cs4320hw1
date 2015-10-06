@@ -13,6 +13,8 @@ public class LeafNode<K extends Comparable<K>, T> extends Node<K, T> {
 		values = new ArrayList<T>();
 		keys.add(firstKey);
 		values.add(firstValue);
+		nextLeaf = null;
+		previousLeaf = null;
 
 	}
 
@@ -57,5 +59,35 @@ public class LeafNode<K extends Comparable<K>, T> extends Node<K, T> {
 	public ArrayList<T> getValuesArrayList(){
 		return values;
 	}
+	
+	public void setKeyArrayList(ArrayList<K> arg0){
+		keys = arg0;
+	}
+	
+	public void setValuesArrayList(ArrayList<T> arg0){
+		values = arg0;
+	}
+	
+	public LeafNode<K,T> getRight(){
+		return nextLeaf;
+	}
+	
+	public LeafNode<K,T> getLeft(){
+		return previousLeaf;
+	}
+	
+	public void setRight(LeafNode<K,T> arg0){
+		nextLeaf = arg0;
+	}
+	
+	public void setLeft(LeafNode<K,T> arg0){
+		previousLeaf = arg0;
+	}
 
+	public void removeKey(K key){
+		int temp = keys.indexOf(key);
+		values.remove(temp);
+		keys.remove(temp);
+	}
+	
 }

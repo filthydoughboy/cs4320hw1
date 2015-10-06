@@ -110,6 +110,14 @@ public class BPlusTree<K extends Comparable<K>, T> {
 		LeafNode<K,T> tempLeaf = new LeafNode<K,T>(tempNewKeys,tempNewValues);
 		K firstKey = tempLeaf.getKeyArrayList().get(0);
 		Entry<K, Node<K,T>> tempEntry = new AbstractMap.SimpleEntry<K, Node<K,T>>(firstKey,tempLeaf);
+		
+		LeafNode<K,T> oldRight = currentNode.getRight();
+		if (oldRight != null){
+			oldRight.setLeft(tempLeaf);
+			tempLeaf.setRight(oldRight);
+		}
+		currentNode.setRight(tempLeaf);
+		tempLeaf.setLeft(currentNode);
 		return tempEntry;
 	}
 
@@ -136,10 +144,6 @@ public class BPlusTree<K extends Comparable<K>, T> {
 			tempKeys.remove(D);
 			tempChildren.remove(D + 1);
 		}
-		System.out.println(tempChildren);
-		System.out.println(tempKeys);
-		System.out.println(tempNewChildren);
-		System.out.println(tempNewKeys);
 		IndexNode<K,T> tempIndex = new IndexNode<K,T>(tempNewKeys,tempNewChildren);
 		K firstKey = tempIndex.getKeyArrayList().get(0);
 		Entry<K, Node<K,T>> tempEntry = new AbstractMap.SimpleEntry<K, Node<K,T>>(firstKey,tempIndex);
@@ -153,8 +157,178 @@ public class BPlusTree<K extends Comparable<K>, T> {
 	 * @param key
 	 */
 	public void delete(K key) {
+		ArrayList<Node<K,T>> tempPath = searchPathOfKey(key);
+		LeafNode<K,T> tempLeaf = (LeafNode<K, T>) tempPath.get(0);
+		tempLeaf.removeKey(key);
+		
+		// Do root check and stuff here first
 
+		IndexNode<K,T> tempParent = (IndexNode<K,T>) tempPath.get(1);
+		boolean isTargLeft = isTargetLeft(tempLeaf, tempParent);
+		LeafNode<K,T> targetSibling;
+		if(isTargLeft){
+			targetSibling = tempLeaf.getLeft();
+		}
+		else{
+			targetSibling = tempLeaf.getRight();
+		}
+		int signal = whatToDo(tempLeaf,targetSibling);
+		if (signal == 0){
+			return;
+		}
+		if (signal == 1){
+			K tempNewKey;
+			if (isTargLeft){
+				tempNewKey = redistributeLeaf(targetSibling, tempLeaf);
+				int indexOfKey = tempParent.getChildrenArrayList().indexOf(tempLeaf);
+				if (indexOfKey == 0){
+					return;
+				}
+				tempParent.getKeyArrayList().set(indexOfKey - 1, tempNewKey);
+				return;
+			}
+			else{
+				tempNewKey = redistributeLeaf(tempLeaf,targetSibling);
+				int indexOfKey = tempParent.getChildrenArrayList().indexOf(targetSibling);
+				if (indexOfKey == 0){
+					return;
+				}
+				tempParent.getKeyArrayList().set(indexOfKey - 1, tempNewKey);
+				return;
+			}
+		}
+		if (signal == 2){
+			if (isTargLeft){
+				mergeLeaf(targetSibling,tempLeaf,tempParent);
+			}
+			else{
+				mergeLeaf(tempLeaf,targetSibling,tempParent);
+			}
+			
+		}
+		
 	}
+	
+	/**
+	 * Redistributes keys and children between left node and right node while
+	 * pushing through the splitting entry in the parent node.
+	 * 
+	 * @param leftNode
+	 * @param rightNode
+	 * @param parentNode
+	 */
+	private void redistributeIndexNode(IndexNode<K,T> leftNode, IndexNode<K,T> rightNode, IndexNode<K,T> parentNode){
+		int indexOfBetween = parentNode.getChildrenArrayList().indexOf(leftNode);
+		K betweenKey = parentNode.getKeyArrayList().get(indexOfBetween);
+		ArrayList<K> allKeys = new ArrayList<K>();
+		allKeys.addAll(leftNode.getKeyArrayList());
+		allKeys.add(betweenKey);
+		allKeys.addAll(rightNode.getKeyArrayList());
+		ArrayList<Node<K,T>> allChildren = new ArrayList<Node<K,T>>();
+		allChildren.addAll(leftNode.getChildrenArrayList());
+		allChildren.addAll(rightNode.getChildrenArrayList());
+		if (allKeys.size()%2 == 0){
+			leftNode.setKeyArrayList((ArrayList<K>) allKeys.subList(0, allKeys.size()/2));
+			rightNode.setKeyArrayList((ArrayList<K>) allKeys.subList(allKeys.size()/2, allKeys.size()));
+			leftNode.setChildrenArrayList((ArrayList<Node<K, T>>) allChildren.subList(0, allKeys.size()/2));
+			rightNode.setChildrenArrayList((ArrayList<Node<K, T>>) allChildren.subList(allKeys.size()/2, allKeys.size()));
+		}
+		else{
+			leftNode.setKeyArrayList((ArrayList<K>) allKeys.subList(0,allKeys.size()/2 + 1));
+			rightNode.setKeyArrayList((ArrayList<K>) allKeys.subList(allKeys.size()/2 + 1, allKeys.size()));
+			leftNode.setChildrenArrayList((ArrayList<Node<K, T>>) allChildren.subList(0,allKeys.size()/2 + 1));
+			rightNode.setChildrenArrayList((ArrayList<Node<K, T>>) allChildren.subList(allKeys.size()/2 + 1, allKeys.size()));
+		}
+		ArrayList<K> tempLeftKeys = leftNode.getKeyArrayList();
+		K tempNewBetweenKey = tempLeftKeys.get(tempLeftKeys.size() - 1);
+		parentNode.getKeyArrayList().set(indexOfBetween, tempNewBetweenKey);
+		tempLeftKeys.remove(tempNewBetweenKey);
+	}
+	
+	private void mergeIndexNode(IndexNode<K,T> leftNode, IndexNode<K,T> rightNode, IndexNode<K,T> parentNode){
+		int indexOfBetween = parentNode.getChildrenArrayList().indexOf(leftNode);
+		K betweenKey = parentNode.getKeyArrayList().get(indexOfBetween);
+		ArrayList<K> allKeys = leftNode.getKeyArrayList();
+		allKeys.add(betweenKey);
+		allKeys.addAll(rightNode.getKeyArrayList());
+		leftNode.setKeyArrayList(allKeys);
+		ArrayList<Node<K,T>> allChildren = leftNode.getChildrenArrayList();
+		allChildren.addAll(rightNode.getChildrenArrayList());
+		leftNode.setChildrenArrayList(allChildren);
+		parentNode.getChildrenArrayList().remove(rightNode);
+	}
+
+	/**
+	 * Helper method that detects whether the target sibling is the left
+	 * or right sibling of the currentNode
+	 * 
+	 * @param currentNode
+	 * @param parentNode
+	 * @return true if the target sibling is the left sibling
+	 */
+	private boolean isTargetLeft(LeafNode<K,T> currentNode, IndexNode<K,T> parentNode){
+		LeafNode<K,T> tempNode = currentNode.getLeft();
+		if (tempNode == null || parentNode.getChildrenArrayList().indexOf(tempNode) == -1){
+			return false;
+		}
+		return true;
+	}
+	
+	/**
+	 * Helper method that signals for redistribution or merging.
+	 * 
+	 * @param currentNode
+	 * @param sibling is the target sibling
+	 * @return 0 if there is nothing to do, 1 if you must redistribute,
+	 * and 2 if you must merge
+	 */
+	private int whatToDo(LeafNode<K,T> currentNode, LeafNode<K,T> sibling){
+		if (currentNode.getKeyArrayList().size() >= D){
+			return 0;
+		}
+		else{
+			if (sibling.getKeyArrayList().size() >= D){
+				return 1;
+			}
+			return 2;
+		}
+	}
+	
+	private void mergeLeaf(LeafNode<K,T> leftNode, LeafNode<K,T> rightNode, IndexNode<K,T> parentNode){
+		leftNode.getKeyArrayList().addAll(rightNode.getKeyArrayList());
+		leftNode.getValuesArrayList().addAll(rightNode.getValuesArrayList());
+		leftNode.setRight(rightNode.getRight());
+		rightNode.getRight().setLeft(leftNode);
+		int indexOfRight = parentNode.getChildrenArrayList().indexOf(rightNode);
+		parentNode.getChildrenArrayList().remove(indexOfRight);
+		parentNode.getKeyArrayList().remove(indexOfRight);
+	}
+	
+	/**
+	 * Helper method that redistributes keys and values between two
+	 * leaf nodes. It adds all their keys and values in order into one
+	 * ArrayList. Then it takes the first D elements and puts it into the
+	 * left node, and puts the rest into the right node.
+	 * 
+	 * @param leftNode
+	 * @param rightNode
+	 * @return the smallest key of the right node, used to update
+	 * the parent IndexNode's key ArrayList
+	 */
+	private K redistributeLeaf(LeafNode<K,T> leftNode, LeafNode<K,T> rightNode){
+		ArrayList<T> tempValues = new ArrayList<T>();
+		tempValues.addAll(leftNode.getValuesArrayList());
+		tempValues.addAll(rightNode.getValuesArrayList());
+		ArrayList<K> tempKeys = new ArrayList<K>();
+		tempKeys.addAll(leftNode.getKeyArrayList());
+		tempKeys.addAll(rightNode.getKeyArrayList());
+		leftNode.setKeyArrayList((ArrayList<K>) tempKeys.subList(0,tempKeys.size()/2));
+		rightNode.setKeyArrayList((ArrayList<K>) tempKeys.subList(tempKeys.size()/2 + 1, tempKeys.size()));
+		leftNode.setValuesArrayList((ArrayList<T>) tempValues.subList(0, tempValues.size()/2));
+		rightNode.setValuesArrayList((ArrayList<T>) tempValues.subList(tempValues.size()/2 + 1, tempValues.size()));
+		return rightNode.getKeyArrayList().get(0);
+	}
+
 
 	/**
 	 * TODO Handle LeafNode Underflow (merge or redistribution)

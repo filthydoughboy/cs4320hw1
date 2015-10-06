@@ -47,8 +47,16 @@ public class IndexNode<K extends Comparable<K>, T> extends Node<K,T> {
 		return keys;
 	}
 	
+	public void setKeyArrayList(ArrayList<K> arg0){
+		keys = arg0;
+	}
+	
 	public ArrayList<Node<K,T>> getChildrenArrayList(){
 		return children;
+	}
+	
+	public void setChildrenArrayList(ArrayList<Node<K,T>> arg0){
+		children = arg0;
 	}
 
 }
