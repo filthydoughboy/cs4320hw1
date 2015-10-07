@@ -52,39 +52,51 @@ public class BPlusTree<K extends Comparable<K>, T> {
 		ArrayList<Node<K,T>> tempPath = searchPathOfKey(key);
 		LeafNode<K,T> tempLeaf = (LeafNode<K, T>) tempPath.get(0);
 		tempLeaf.insertSorted(key,value);
+		K newFirstKey = tempLeaf.getKeyArrayList().get(0);
+		IndexNode<K,T> tempIndexNode = (IndexNode<K,T>) tempPath.get(1);
+		int theIndex = tempIndexNode.getChildrenArrayList().indexOf(tempLeaf);
+		if (theIndex > 0){
+			tempIndexNode.getKeyArrayList().set(theIndex - 1, newFirstKey);
+		}
 		Entry<K, Node<K,T>> tempNewEntry = null;
 		if (tempLeaf.getKeyArrayList().size() > 2*D){
 			tempNewEntry = splitLeafNode(tempLeaf);
-			IndexNode<K,T> tempIndexNode = (IndexNode<K,T>) tempPath.get(1);
-			int theIndex = tempIndexNode.getChildrenArrayList().indexOf(tempLeaf);
 			tempIndexNode.insertSorted(tempNewEntry,theIndex);
 		}
 		else{
 			return;
 		}
-		for (int i = 1; i < tempPath.size() - 1; i++){
+		if (tempPath.size() >= 2){
+			IndexNode<K,T> tempNode = (IndexNode<K, T>) tempPath.get(1);
+			if (tempNode.getKeyArrayList().size() <= 2*D){
+				return;
+			}
+			tempNewEntry = splitIndexNode(tempNode);
+			if (tempPath.size() == 2){
+				K newRootKey = tempNewEntry.getKey();
+				root = new IndexNode<K,T>(newRootKey,root,tempNewEntry.getValue());
+				return;
+			}
+		}
+		for (int i = 2; i < tempPath.size() - 1; i++){
 			IndexNode<K,T> tempNode = (IndexNode<K, T>) tempPath.get(i);
 			Node<K,T> properChild = tempPath.get(i-1);
-			int theIndex = tempNode.getChildrenArrayList().indexOf(properChild);
+			theIndex = tempNode.getChildrenArrayList().indexOf(properChild);
 			tempNode.insertSorted(tempNewEntry, theIndex);
-			if (tempNode.getChildrenArrayList().size() <= 2*D){
+			if (tempNode.getKeyArrayList().size() <= 2*D){
 				return;
 			}
 			tempNewEntry = splitIndexNode(tempNode);
 		}
-		Node<K,T> tempLeftChild = tempPath.get(tempPath.size() - 1);
-		if (tempLeftChild.getKeyArrayList().size() <= 2*D){
+		theIndex = ((IndexNode<K, T>) root).getChildrenArrayList().indexOf(tempPath.get(tempPath.size() - 2));
+		((IndexNode<K, T>) root).insertSorted(tempNewEntry,theIndex);
+		if (root.getKeyArrayList().size() <= 2*D){
 			return;
 		}
-		if (tempLeftChild.isLeafNode){
-			tempNewEntry = splitLeafNode((LeafNode<K, T>) tempLeftChild);
-		}
-		else{
-			tempNewEntry = splitIndexNode((IndexNode<K, T>) tempLeftChild);
-		}
+		tempNewEntry = splitIndexNode((IndexNode<K,T>) root);
 		K tempRootKey = tempNewEntry.getKey();
 		Node<K,T> tempRightChild =  tempNewEntry.getValue();
-		root = new IndexNode<K,T>(tempRootKey,tempLeftChild,tempRightChild);
+		root = new IndexNode<K,T>(tempRootKey,root,tempRightChild);
 	}
 
 	/**
@@ -99,18 +111,13 @@ public class BPlusTree<K extends Comparable<K>, T> {
 		ArrayList<T> tempValues = currentNode.getValuesArrayList();
 		ArrayList<K> tempNewKeys = new ArrayList<K>();
 		ArrayList<T> tempNewValues = new ArrayList<T>();
-		for (int i = D; i < 2*D + 1; i++){
-			tempNewKeys.add(tempKeys.get(i));
-			tempNewValues.add(tempValues.get(i));
-		}
-		for (int i = D; i < 2*D + 1; i++){
-			tempKeys.remove(D);
-			tempValues.remove(D);
-		}
+		tempNewKeys.addAll(new ArrayList<K>(tempKeys.subList(D,2*D+1)));
+		tempNewValues.addAll(new ArrayList<T>(tempValues.subList(D,2*D+1)));
+		currentNode.setKeyArrayList(new ArrayList<K>(tempKeys.subList(0, D)));
+		currentNode.setValuesArrayList(new ArrayList<T>(tempValues.subList(0, D)));
 		LeafNode<K,T> tempLeaf = new LeafNode<K,T>(tempNewKeys,tempNewValues);
 		K firstKey = tempLeaf.getKeyArrayList().get(0);
 		Entry<K, Node<K,T>> tempEntry = new AbstractMap.SimpleEntry<K, Node<K,T>>(firstKey,tempLeaf);
-		
 		LeafNode<K,T> oldRight = currentNode.getRight();
 		if (oldRight != null){
 			oldRight.setLeft(tempLeaf);
@@ -133,17 +140,10 @@ public class BPlusTree<K extends Comparable<K>, T> {
 		ArrayList<Node<K,T>> tempChildren = currentNode.getChildrenArrayList();
 		ArrayList<K> tempNewKeys = new ArrayList<K>();
 		ArrayList<Node<K,T>> tempNewChildren = new ArrayList<Node<K,T>>();
-		System.out.println(tempChildren);
-		tempNewKeys.add(tempKeys.get(D));
-		for (int i = D + 1; i < 2*D + 1; i++){
-			tempNewKeys.add(tempKeys.get(i));
-			tempNewChildren.add(tempChildren.get(i));
-		}
-		tempNewChildren.add(tempChildren.get(2*D + 1));
-		for (int i = D; i < 2*D + 1; i++){
-			tempKeys.remove(D);
-			tempChildren.remove(D + 1);
-		}
+		tempNewKeys = new ArrayList<K>(tempKeys.subList(D,2*D+1));
+		tempNewChildren= new ArrayList<Node<K,T>>(tempChildren.subList(D+1,2*D + 2));
+		currentNode.setKeyArrayList(new ArrayList<K>(tempKeys.subList(0, D)));
+		currentNode.setChildrenArrayList(new ArrayList<Node<K, T>>(tempChildren.subList(0,D+1)));
 		IndexNode<K,T> tempIndex = new IndexNode<K,T>(tempNewKeys,tempNewChildren);
 		K firstKey = tempIndex.getKeyArrayList().get(0);
 		Entry<K, Node<K,T>> tempEntry = new AbstractMap.SimpleEntry<K, Node<K,T>>(firstKey,tempIndex);
@@ -228,16 +228,16 @@ public class BPlusTree<K extends Comparable<K>, T> {
 		allChildren.addAll(leftNode.getChildrenArrayList());
 		allChildren.addAll(rightNode.getChildrenArrayList());
 		if (allKeys.size()%2 == 0){
-			leftNode.setKeyArrayList((ArrayList<K>) allKeys.subList(0, allKeys.size()/2));
-			rightNode.setKeyArrayList((ArrayList<K>) allKeys.subList(allKeys.size()/2, allKeys.size()));
-			leftNode.setChildrenArrayList((ArrayList<Node<K, T>>) allChildren.subList(0, allKeys.size()/2));
-			rightNode.setChildrenArrayList((ArrayList<Node<K, T>>) allChildren.subList(allKeys.size()/2, allKeys.size()));
+			leftNode.setKeyArrayList(new ArrayList<K>(allKeys.subList(0, allKeys.size()/2)));
+			rightNode.setKeyArrayList(new ArrayList<K>(allKeys.subList(allKeys.size()/2, allKeys.size())));
+			leftNode.setChildrenArrayList(new ArrayList<Node<K, T>>(allChildren.subList(0, allKeys.size()/2)));
+			rightNode.setChildrenArrayList(new ArrayList<Node<K, T>>(allChildren.subList(allKeys.size()/2, allKeys.size())));
 		}
 		else{
-			leftNode.setKeyArrayList((ArrayList<K>) allKeys.subList(0,allKeys.size()/2 + 1));
-			rightNode.setKeyArrayList((ArrayList<K>) allKeys.subList(allKeys.size()/2 + 1, allKeys.size()));
-			leftNode.setChildrenArrayList((ArrayList<Node<K, T>>) allChildren.subList(0,allKeys.size()/2 + 1));
-			rightNode.setChildrenArrayList((ArrayList<Node<K, T>>) allChildren.subList(allKeys.size()/2 + 1, allKeys.size()));
+			leftNode.setKeyArrayList(new ArrayList<K>(allKeys.subList(0,allKeys.size()/2 + 1)));
+			rightNode.setKeyArrayList(new ArrayList<K>(allKeys.subList(allKeys.size()/2 + 1, allKeys.size())));
+			leftNode.setChildrenArrayList(new ArrayList<Node<K, T>>(allChildren.subList(0,allKeys.size()/2 + 1)));
+			rightNode.setChildrenArrayList(new ArrayList<Node<K, T>>(allChildren.subList(allKeys.size()/2 + 1, allKeys.size())));
 		}
 		ArrayList<K> tempLeftKeys = leftNode.getKeyArrayList();
 		K tempNewBetweenKey = tempLeftKeys.get(tempLeftKeys.size() - 1);
@@ -322,10 +322,10 @@ public class BPlusTree<K extends Comparable<K>, T> {
 		ArrayList<K> tempKeys = new ArrayList<K>();
 		tempKeys.addAll(leftNode.getKeyArrayList());
 		tempKeys.addAll(rightNode.getKeyArrayList());
-		leftNode.setKeyArrayList((ArrayList<K>) tempKeys.subList(0,tempKeys.size()/2));
-		rightNode.setKeyArrayList((ArrayList<K>) tempKeys.subList(tempKeys.size()/2 + 1, tempKeys.size()));
-		leftNode.setValuesArrayList((ArrayList<T>) tempValues.subList(0, tempValues.size()/2));
-		rightNode.setValuesArrayList((ArrayList<T>) tempValues.subList(tempValues.size()/2 + 1, tempValues.size()));
+		leftNode.setKeyArrayList(new ArrayList<K>(tempKeys.subList(0,tempKeys.size()/2)));
+		rightNode.setKeyArrayList(new ArrayList<K>(tempKeys.subList(tempKeys.size()/2 + 1, tempKeys.size())));
+		leftNode.setValuesArrayList(new ArrayList<T>(tempValues.subList(0, tempValues.size()/2)));
+		rightNode.setValuesArrayList(new ArrayList<T>(tempValues.subList(tempValues.size()/2 + 1, tempValues.size())));
 		return rightNode.getKeyArrayList().get(0);
 	}
 

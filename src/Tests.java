@@ -113,6 +113,7 @@ public class Tests {
 		testTreeInvariants(tree);
 
 		assertTrue(treeDepth(tree.root) < 11);
+		System.out.println(treeDepth(tree.root));
 	}
 
 	public <K extends Comparable<K>, T> void testTreeInvariants(
