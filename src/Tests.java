@@ -90,7 +90,9 @@ public class Tests {
 		Utils.bulkInsert(tree, testNumbers, testNumberStrings);
 
 		tree.delete(6);
+		Utils.printTree(tree);
 		tree.delete(7);
+		Utils.printTree(tree);
 		tree.delete(8);
 		String test = Utils.outputTree(tree);
 		Utils.printTree(tree);

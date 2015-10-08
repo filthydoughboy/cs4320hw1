@@ -417,15 +417,17 @@ public class BPlusTree<K extends Comparable<K>, T> {
 	 */
 	private K redistributeLeaf(LeafNode<K,T> leftNode, LeafNode<K,T> rightNode){
 		ArrayList<T> tempValues = new ArrayList<T>();
+		// Combine all the values into one ArrayList
 		tempValues.addAll(leftNode.getValuesArrayList());
 		tempValues.addAll(rightNode.getValuesArrayList());
 		ArrayList<K> tempKeys = new ArrayList<K>();
+		// Combine all the keys into one ArrayList
 		tempKeys.addAll(leftNode.getKeyArrayList());
 		tempKeys.addAll(rightNode.getKeyArrayList());
 		leftNode.setKeyArrayList(new ArrayList<K>(tempKeys.subList(0,tempKeys.size()/2)));
-		rightNode.setKeyArrayList(new ArrayList<K>(tempKeys.subList(tempKeys.size()/2 + 1, tempKeys.size())));
+		rightNode.setKeyArrayList(new ArrayList<K>(tempKeys.subList(tempKeys.size()/2, tempKeys.size())));
 		leftNode.setValuesArrayList(new ArrayList<T>(tempValues.subList(0, tempValues.size()/2)));
-		rightNode.setValuesArrayList(new ArrayList<T>(tempValues.subList(tempValues.size()/2 + 1, tempValues.size())));
+		rightNode.setValuesArrayList(new ArrayList<T>(tempValues.subList(tempValues.size()/2, tempValues.size())));
 		return rightNode.getKeyArrayList().get(0);
 	}
 	
