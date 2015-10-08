@@ -24,11 +24,11 @@ public class Tests {
 
 		assertEquals(correct, test);
 
-//		tree.delete('a');
-//
-//		test = Utils.outputTree(tree);
-//		correct = "@e/@%%[(b,b);(c,c);(d,d);]#[(e,e);(f,f);(g,g);]$%%";
-//		assertEquals(correct, test);
+		tree.delete('a');
+
+		test = Utils.outputTree(tree);
+		correct = "@e/@%%[(b,b);(c,c);(d,d);]#[(e,e);(f,f);(g,g);]$%%";
+		assertEquals(correct, test);
 
 	}
 
@@ -48,11 +48,11 @@ public class Tests {
 		String correct = "@10/@%%@5/8/@@12/14/@%%[(2,2);(4,4);]#[(5,5);(7,7);]#[(8,8);(9,9);]$[(10,10);(11,11);]#[(12,12);(13,13);]#[(14,14);(15,15);(16,16);]$%%";
 		assertEquals(test, correct);
 
-//		tree.delete(2);
-//		test = Utils.outputTree(tree);
-//		Utils.printTree(tree);
-//		correct = "@8/10/12/14/@%%[(4,4);(5,5);(7,7);]#[(8,8);(9,9);]#[(10,10);(11,11);]#[(12,12);(13,13);]#[(14,14);(15,15);(16,16);]$%%";
-//		assertEquals(test, correct);
+		tree.delete(2);
+		test = Utils.outputTree(tree);
+		Utils.printTree(tree);
+		correct = "@8/10/12/14/@%%[(4,4);(5,5);(7,7);]#[(8,8);(9,9);]#[(10,10);(11,11);]#[(12,12);(13,13);]#[(14,14);(15,15);(16,16);]$%%";
+		assertEquals(test, correct);
 	}
 
 	@Test
@@ -69,6 +69,7 @@ public class Tests {
 		tree.delete(13);
 		tree.delete(17);
 		tree.delete(30);
+		Utils.printTree(tree);
 		tree.insert(39, "39");
 		Utils.printTree(tree);
 		// Initial tree
@@ -114,6 +115,7 @@ public class Tests {
 
 		assertTrue(treeDepth(tree.root) < 11);
 		System.out.println(treeDepth(tree.root));
+		
 	}
 
 	public <K extends Comparable<K>, T> void testTreeInvariants(
