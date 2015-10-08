@@ -100,6 +100,117 @@ public class Tests {
 		String result = "@4/@%%[(2,2);(3,3);]#[(4,4);(5,5);]$%%";
 		assertEquals(result, test);
 	}
+	
+	// One test case that adds 1-8 and deletes all of them, checking one at a time.
+	@Test
+	public void testOneToEight(){
+		Integer testNumbers[] = new Integer[] {1, 2, 3, 4, 5, 6, 7, 8};
+		String testNumberStrings[] = new String[testNumbers.length];
+		for (int i = 0; i < testNumbers.length; i++){
+			testNumberStrings[i] = (testNumbers[i]).toString();
+		}
+		BPlusTree<Integer,String> tree = new BPlusTree<Integer,String>();
+		Utils.bulkInsert(tree, testNumbers, testNumberStrings);
+		Utils.printTree(tree);
+		tree.delete(6);
+		Utils.printTree(tree);
+		tree.delete(7);
+		Utils.printTree(tree);
+		tree.delete(8);
+		String test = Utils.outputTree(tree);
+		
+		String correct = "@3/@%%[(1,1);(2,2);]#[(3,3);(4,4);(5,5);]$%%";
+		
+		assertEquals(correct,test);
+		
+		tree.delete(4);
+		Utils.printTree(tree);
+		tree.delete(5);
+		Utils.printTree(tree);
+		
+		correct = "[(1,1);(2,2);(3,3);]$%%";
+		test = Utils.outputTree(tree);
+		assertEquals(correct,test);
+	}
+	
+	// Test slowly deleting values.
+	@Test
+	public void testOneToSixteen(){
+		Integer testNumbers[] = new Integer[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
+		String testNumberStrings[] = new String[testNumbers.length];
+		for (int i = 0; i < testNumbers.length; i++){
+			testNumberStrings[i] = (testNumbers[i]).toString();
+		}
+		BPlusTree<Integer,String> tree = new BPlusTree<Integer,String>();
+		Utils.bulkInsert(tree, testNumbers, testNumberStrings);
+		Utils.printTree(tree);
+		tree.delete(12);
+		
+		String correct = "@7/@%%@3/5/@@9/13/@%%[(1,1);(2,2);]#[(3,3);(4,4);]#[(5,5);(6,6);]$[(7,7);(8,8);" +
+				"]#[(9,9);(10,10);(11,11);]#[(13,13);(14,14);(15,15);(16,16);]$%%";
+		String test = Utils.outputTree(tree);
+		assertEquals(correct,test);
+		
+		tree.delete(6);
+		correct = "@3/7/9/13/@%%[(1,1);(2,2);]#[(3,3);(4,4);(5,5);]#[(7,7);(8,8);]#[(9,9);(10,10);(" +
+				"11,11);]#[(13,13);(14,14);(15,15);(16,16);]$%%";
+		test = Utils.outputTree(tree);
+		assertEquals(correct,test);
+		
+		tree.delete(15);
+		tree.delete(16);
+		tree.delete(13);
+		correct = "@3/7/9/11/@%%[(1,1);(2,2);]#[(3,3);(4,4);(5,5);]#[(7,7);(8,8);]#[(9,9);(10,10);]#[(11" +
+				",11);(14,14);]$%%";
+		test = Utils.outputTree(tree);
+		assertEquals(correct,test);
+		
+		tree.delete(3);
+		tree.delete(4);
+		correct = "@7/9/11/@%%[(1,1);(2,2);(5,5);]#[(7,7);(8,8);]#[(9,9);(10,10);]#[(11,11);(14,14);]$%%";
+		test = Utils.outputTree(tree);
+		assertEquals(correct,test);
+		
+		tree.delete(2);
+		tree.delete(5);
+		correct = "@9/11/@%%[(1,1);(7,7);(8,8);]#[(9,9);(10,10);]#[(11,11);(14,14);]$%%";
+		test = Utils.outputTree(tree);
+		assertEquals(correct,test);
+		
+		tree.delete(10);
+		correct = "@8/11/@%%[(1,1);(7,7);]#[(8,8);(9,9);]#[(11,11);(14,14);]$%%";
+		test = Utils.outputTree(tree);
+		assertEquals(correct,test);
+		
+		tree.delete(9);
+		correct = "@11/@%%[(1,1);(7,7);(8,8);]#[(11,11);(14,14);]$%%";
+		test = Utils.outputTree(tree);
+		assertEquals(correct,test);
+		
+		tree.delete(7);
+		tree.delete(8);
+		correct = "[(1,1);(11,11);(14,14);]$%%";
+		test = Utils.outputTree(tree);
+		assertEquals(correct,test);
+	}
+	
+	// Try to test redistribution and merging of IndexNodes that having IndexNode as children.
+	@Test
+	public void testIndexDeletesWithIndexChildren(){
+		Integer testNumbers[] = new Integer[53];
+		String testNumberStrings[] = new String[testNumbers.length];
+		for (int i = 0; i < testNumbers.length; i++){
+			testNumbers[i] = i + 1;
+		}
+		for (int i = 0; i < testNumbers.length; i++){
+			testNumberStrings[i] = (testNumbers[i]).toString();
+		}
+		BPlusTree<Integer,String> tree = new BPlusTree<Integer,String>();
+		Utils.bulkInsert(tree, testNumbers, testNumberStrings);
+		Utils.printTree(tree);
+		tree.delete(15);
+		Utils.printTree(tree);
+	}
 
 	// Testing appropriate depth and node invariants on a big tree
 	@Test

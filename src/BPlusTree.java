@@ -228,17 +228,18 @@ public class BPlusTree<K extends Comparable<K>, T> {
 		}
 		// The leaf is underflowed, and the target sibling cannot spare key/value pairs. Merge.
 		if (signal == 2){
+			LeafNode<K,T> newNode;
 			if (isTargLeft){
-				mergeLeaf(targetSibling,tempLeaf,tempParent);
+				newNode = mergeLeaf(targetSibling,tempLeaf,tempParent);
 			}
 			else{
-				mergeLeaf(tempLeaf,targetSibling,tempParent);
+				newNode = mergeLeaf(tempLeaf,targetSibling,tempParent);
 			}
 			// If the parent is a root, the only time you do anything is if
 			// the root is now empty. Then there should be only one child, so set that as root.
 			if (tempPath.size() == 2){
-				if (root.getKeyArrayList().size() == 0){
-					root = tempLeaf;
+				if (((IndexNode<K, T>) root).getChildrenArrayList().size() <= 1){
+					root = newNode;
 				}
 				return;
 			}
@@ -269,11 +270,12 @@ public class BPlusTree<K extends Comparable<K>, T> {
 				}
 				// The current IndexNode is underflowed, and the target sibling cannot spare key/value pairs. Merge.
 				if (newSignal == 2){
+					
 					if (doLeft){
-						mergeIndexNode(targetIndexSibling, currentNode, parentNode);
+						currentNode = mergeIndexNode(targetIndexSibling, currentNode, parentNode);
 					}
 					else{
-						mergeIndexNode(currentNode, targetIndexSibling, parentNode);
+						currentNode = mergeIndexNode(currentNode, targetIndexSibling, parentNode);
 					}
 				}
 			}
@@ -319,7 +321,7 @@ public class BPlusTree<K extends Comparable<K>, T> {
 		tempLeftKeys.remove(tempNewBetweenKey);
 	}
 	
-	private void mergeIndexNode(IndexNode<K,T> leftNode, IndexNode<K,T> rightNode, IndexNode<K,T> parentNode){
+	private IndexNode<K,T> mergeIndexNode(IndexNode<K,T> leftNode, IndexNode<K,T> rightNode, IndexNode<K,T> parentNode){
 		// Get the between key.
 		int indexOfBetween = parentNode.getChildrenArrayList().indexOf(leftNode);
 		K betweenKey = parentNode.getKeyArrayList().get(indexOfBetween);
@@ -334,6 +336,7 @@ public class BPlusTree<K extends Comparable<K>, T> {
 		leftNode.setChildrenArrayList(allChildren);
 		// Delete the pointer to the right child in the parent node.
 		parentNode.getChildrenArrayList().remove(rightNode);
+		return leftNode;
 	}
 
 	/**
@@ -394,14 +397,17 @@ public class BPlusTree<K extends Comparable<K>, T> {
 		}
 	}
 	
-	private void mergeLeaf(LeafNode<K,T> leftNode, LeafNode<K,T> rightNode, IndexNode<K,T> parentNode){
+	private LeafNode<K,T> mergeLeaf(LeafNode<K,T> leftNode, LeafNode<K,T> rightNode, IndexNode<K,T> parentNode){
 		leftNode.getKeyArrayList().addAll(rightNode.getKeyArrayList());
 		leftNode.getValuesArrayList().addAll(rightNode.getValuesArrayList());
 		leftNode.setRight(rightNode.getRight());
-		rightNode.getRight().setLeft(leftNode);
+		if (rightNode.getRight() != null){
+			rightNode.getRight().setLeft(leftNode);
+		}
 		int indexOfRight = parentNode.getChildrenArrayList().indexOf(rightNode);
 		parentNode.getChildrenArrayList().remove(indexOfRight);
 		parentNode.getKeyArrayList().remove(indexOfRight - 1);
+		return leftNode;
 	}
 	
 	/**
